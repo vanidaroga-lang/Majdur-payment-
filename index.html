@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Mazdoori Khata — Labour Payment Register</title>
+<meta name="theme-color" content="#E8A33D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mazdoori Khata">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#FFFFFF;--bg-raised:#F7F3E8;--row-a:#FFFFFF;--row-b:#FAF7EF;
+    --paper:#2B2620;--ink:#3A342C;--ink-dim:#7A7364;--line:#E6DFCD;
+    --amber:#E8A33D;--amber-text:#8A5A12;--brick:#C1440E;--fern:#4F7942;
+    --radius:10px;--chk-w:34px;--name-w:148px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-variant-numeric:tabular-nums;padding-bottom:28px;}
+  header{padding:20px 16px 12px;border-bottom:1px solid var(--line);}
+  h1{font-family:'Oswald',sans-serif;font-weight:600;font-size:22px;margin:0;color:var(--paper);}
+  header p{margin:3px 0 0;color:var(--ink-dim);font-size:12.5px;}
+
+  /* ---- month section ---- */
+  .month-section{margin:12px 16px 0;background:var(--bg-raised);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;}
+  .month-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  #monthSelect{flex:1;padding:10px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--paper);font-size:14px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;}
+  .month-badge{font-size:10.5px;font-weight:700;padding:5px 9px;border-radius:999px;background:rgba(232,163,61,0.18);color:var(--amber-text);white-space:nowrap;}
+  .month-badge.readonly{background:rgba(122,115,100,0.14);color:var(--ink-dim);}
+  .date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .date-field label{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:3px;}
+  .date-field input[type=date]{width:100%;padding:9px 8px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--paper);}
+  .date-field input[type=date]:disabled{background:var(--bg-raised);color:var(--ink-dim);}
+  .date-label-display{padding:9px 8px;background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--paper);}
+
+  .readonly-banner{margin:10px 16px 0;padding:9px 12px;background:rgba(122,115,100,0.10);border:1px solid var(--line);border-radius:var(--radius);font-size:12.5px;color:var(--ink-dim);text-align:center;}
+
+  /* ---- action buttons ---- */
+  .top-actions{padding:12px 16px 4px;display:flex;flex-direction:column;gap:8px;}
+  .add-btn{width:100%;background:var(--amber);color:#2B2620;border:none;border-radius:var(--radius);padding:13px;font-size:15px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;}
+  .add-btn:active{background:#d18f2c;} .add-btn:disabled{opacity:0.5;}
+  .btn-secondary{width:100%;background:transparent;color:var(--amber-text);border:1.5px solid var(--amber);border-radius:var(--radius);padding:11px;font-size:14px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .btn-secondary:active{background:rgba(232,163,61,0.10);} .btn-secondary:disabled{opacity:0.55;}
+  .btn-newmonth{width:100%;background:var(--paper);color:var(--bg-raised);border:none;border-radius:var(--radius);padding:11px;font-size:14px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;}
+  .btn-newmonth:active{opacity:0.85;} .btn-newmonth:disabled{opacity:0.4;}
+  .site-name-display{font-size:12px;color:var(--ink-dim);margin-top:4px;font-style:italic;}
+  .reset-link{text-align:center;}
+  .reset-link button{background:none;border:none;color:var(--ink-dim);font-size:12px;text-decoration:underline;cursor:pointer;padding:6px;}
+
+  /* ---- selection bar ---- */
+  .selection-bar{margin:12px 16px 0;background:var(--bg-raised);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;}
+  .selection-bar.active{border-left-color:var(--amber);}
+  .sel-count{font-size:13px;font-weight:600;color:var(--ink-dim);}
+  .selection-bar.active .sel-count{color:var(--paper);}
+  .sel-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .sel-stat .label{font-size:10.5px;color:var(--ink-dim);margin-bottom:2px;}
+  .sel-stat .value{font-size:15px;font-weight:600;color:var(--paper);}
+  .sel-stat .value.dim{color:var(--ink-dim);}
+  .sel-stat .value.adv{color:var(--brick);} .sel-stat .value.net{color:var(--fern);}
+
+  /* ---- scroll hint ---- */
+  .scroll-hint{display:flex;align-items:center;gap:6px;margin:12px 16px 0;font-size:11.5px;color:var(--ink-dim);}
+  .scroll-hint svg{width:13px;height:13px;opacity:0.8;}
+
+  /* ---- table ---- */
+  .table-outer{margin:10px 0 0;padding:0 0 4px;}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 16px;border:1px solid var(--line);border-radius:var(--radius);}
+  table{border-collapse:separate;border-spacing:0;min-width:1120px;width:100%;}
+  thead th{position:sticky;top:0;z-index:2;background:var(--bg-raised);color:var(--ink-dim);font-weight:500;font-size:11.5px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  thead th.col-check{position:sticky;left:0;z-index:3;background:var(--bg-raised);text-align:center;}
+  thead th.col-name{position:sticky;left:var(--chk-w);z-index:3;background:var(--bg-raised);}
+  tbody td{padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  tbody tr:nth-child(odd) td{background:var(--row-a);}
+  tbody tr:nth-child(even) td{background:var(--row-b);}
+  tbody tr.is-selected td{background:rgba(232,163,61,0.16);}
+  tbody td.col-check{position:sticky;left:0;z-index:1;text-align:center;}
+  tbody td.col-name{position:sticky;left:var(--chk-w);z-index:1;box-shadow:1px 0 0 var(--line);white-space:normal;}
+  th.col-check,td.col-check{width:var(--chk-w);min-width:var(--chk-w);}
+  th.col-name,td.col-name{min-width:var(--name-w);}
+  th.col-photo,td.col-photo{min-width:58px;text-align:center;}
+  th.col-num,td.col-num{min-width:76px;}
+  th.col-money,td.col-money{min-width:92px;}
+  th.col-due,td.col-due{min-width:88px;}
+  th.col-status,td.col-status{min-width:84px;}
+  th.col-remove,td.col-remove{min-width:36px;text-align:center;}
+  input[type="checkbox"]{width:18px;height:18px;accent-color:var(--amber);}
+  input.cell{width:100%;background:transparent;border:none;color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:14px;padding:8px 4px;}
+  input.cell:focus{outline:none;background:rgba(232,163,61,0.12);border-radius:6px;}
+  input.cell::placeholder{color:#B0A890;}
+  input.cell.name-input{font-weight:500;color:var(--paper);font-size:14px;padding-bottom:2px;}
+  input.cell:disabled{color:var(--ink);opacity:0.85;}
+  .phone-row{display:flex;align-items:center;gap:2px;}
+  .phone-input{font-size:12px!important;padding:4px!important;color:var(--ink-dim);}
+  .call-btn{font-size:15px;text-decoration:none;padding:3px 5px;border-radius:6px;line-height:1;}
+  .call-btn.disabled{opacity:0.25;pointer-events:none;}
+  .eye-btn{background:rgba(232,163,61,0.15);border:none;border-radius:6px;padding:3px 7px;font-size:15px;cursor:pointer;line-height:1;color:var(--amber-text);flex-shrink:0;}
+  .eye-btn:active{background:rgba(232,163,61,0.35);}
+  .photo-thumb{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background-color:var(--bg-raised);background-size:cover;background-position:center;font-size:16px;cursor:pointer;color:var(--ink-dim);}
+  .photo-thumb:disabled{cursor:default;opacity:0.9;}
+  .readonly-cell{padding:8px 4px;font-weight:600;}
+  td.total-cell .readonly-cell{color:var(--paper);}
+  td.net-cell .readonly-cell{color:var(--fern);}
+  td.due-cell input.cell{color:var(--brick);font-weight:600;}
+  .status-pill{border:none;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
+  .status-pill.paid{background:rgba(79,121,66,0.15);color:var(--fern);}
+  .status-pill.unpaid{background:rgba(193,68,14,0.13);color:var(--brick);}
+  .status-pill:disabled{opacity:0.85;cursor:default;}
+  .remove-btn{background:none;border:none;color:var(--ink-dim);font-size:16px;line-height:1;padding:6px;cursor:pointer;}
+  .remove-btn:active{color:var(--brick);}
+  tfoot td{position:sticky;bottom:0;background:var(--bg-raised);border-top:1px solid var(--line);padding:10px 8px;font-weight:700;font-size:13.5px;color:var(--paper);z-index:2;}
+  tfoot td.col-check,tfoot td.col-name{z-index:3;}
+  tfoot td.col-name{color:var(--ink-dim);font-weight:500;font-size:11.5px;}
+  tfoot td.net-total{color:var(--fern);}
+  tfoot td.adv-total,tfoot td.due-total{color:var(--brick);}
+  .empty{text-align:center;color:var(--ink-dim);padding:40px 20px;font-size:14px;}
+
+  /* ---- confirm overlay ---- */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:flex;align-items:flex-end;padding:0;}
+  .overlay.hidden{display:none;}
+  .confirm-box{background:#fff;border-radius:16px 16px 0 0;padding:24px 20px 32px;width:100%;}
+  .confirm-box h3{margin:0 0 10px;font-size:17px;color:var(--paper);}
+  .confirm-box p{margin:0 0 20px;font-size:13.5px;color:var(--ink-dim);line-height:1.5;}
+  .confirm-btns{display:flex;gap:10px;}
+  .confirm-btns button{flex:1;padding:14px;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
+  .btn-cancel-c{background:var(--bg-raised);color:var(--ink);}
+  .btn-ok-c{background:var(--paper);color:var(--bg-raised);}
+
+
+  /* ---- labour detail modal ---- */
+  .labour-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:60;display:flex;align-items:flex-end;}
+  .labour-modal-overlay.hidden{display:none;}
+  .labour-modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-height:88vh;overflow-y:auto;}
+  .labour-modal-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .labour-modal-photo{width:54px;height:54px;border-radius:50%;border:2px solid var(--line);background:var(--bg-raised);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+  .labour-modal-name{font-size:18px;font-weight:700;color:var(--paper);font-family:'Oswald',sans-serif;}
+  .labour-modal-phone{font-size:13px;color:var(--ink-dim);margin-top:2px;}
+  .labour-modal-close{margin-left:auto;background:var(--bg-raised);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--ink-dim);display:flex;align-items:center;justify-content:center;}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .detail-card{background:var(--bg-raised);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .detail-card .d-label{font-size:11px;color:var(--ink-dim);margin-bottom:4px;}
+  .detail-card .d-value{font-size:17px;font-weight:700;color:var(--paper);}
+  .detail-card .d-value.green{color:var(--fern);}
+  .detail-card .d-value.red{color:var(--brick);}
+  .detail-card.full{grid-column:1/-1;}
+  .paid-toggle-btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;margin-bottom:10px;}
+  .paid-toggle-btn.paid{background:rgba(79,121,66,0.15);color:var(--fern);}
+  .paid-toggle-btn.unpaid{background:rgba(193,68,14,0.13);color:var(--brick);}
+  .share-detail-btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;background:var(--amber);color:var(--paper);}
+  .share-detail-btn:active{background:#d18f2c;}
+  .call-detail-btn{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;background:transparent;color:var(--ink);margin-bottom:10px;text-decoration:none;display:block;text-align:center;}
+
+  /* ---- toast ---- */
+  .toast{position:fixed;left:16px;right:16px;bottom:16px;background:var(--paper);color:var(--bg-raised);padding:12px 16px;border-radius:var(--radius);font-size:13px;text-align:center;opacity:0;transform:translateY(10px);transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:100;}
+  .toast.show{opacity:1;transform:translateY(0);}
+
+#installAppBtn{position:fixed;right:16px;bottom:16px;z-index:9999;background:#E8A33D;color:#201A12;border:0;border-radius:14px;padding:14px 18px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.22);display:none;font-size:16px}
+#installAppBtn.show{display:block}
+</style>
+</head>
+<body>
+<button id="installAppBtn" type="button">📲 Install App</button>
+
+<header>
+  <h1>Mazdoori Khata</h1>
+  <p>Mahine-wise labour payment register — due tracking sahit</p>
+</header>
+
+<!-- Month section -->
+<div class="month-section">
+  <div class="month-row">
+    <select id="monthSelect"></select>
+    <span class="month-badge" id="monthBadge">Current</span>
+  </div>
+  <div class="date-row">
+    <div class="date-field">
+      <label>Shuru ki tarikh</label>
+      <input type="date" id="startDateInput">
+    </div>
+    <div class="date-field">
+      <label>Khatam ki tarikh</label>
+      <input type="date" id="endDateInput">
+    </div>
+  </div>
+  <div class="date-field" style="margin-top:8px;">
+    <label>Site / Kaam ka Naam</label>
+    <input type="text" id="siteNameInput" placeholder="Jaise: Sharma Ji Ki Building, Road No. 5..." style="width:100%;padding:9px 8px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--paper);">
+  </div>
+  <div class="date-field" style="margin-top:8px;">
+    <label>Note / Koi Khaas Baat</label>
+    <textarea id="noteInput" placeholder="Koi bhi zaruri baat yahan likhein..." rows="3" style="width:100%;padding:9px 8px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--paper);resize:vertical;line-height:1.5;"></textarea>
+  </div>
+</div>
+
+<div class="readonly-banner" id="readonlyBanner" style="display:none;">🔒 Ye purana mahina hai — sirf dekhne ke liye, edit nahi ho sakta</div>
+
+<!-- Actions -->
+<div class="top-actions">
+  <button class="add-btn" id="addBtn">+ Naya Labour Add Karein</button>
+  <button class="btn-secondary" id="sharePdfBtn">PDF Banayein aur Share Karein</button>
+  <button class="btn-newmonth" id="newMonthBtn">Agla Mahina Shuru Karein</button>
+  <div class="reset-link"><button id="resetBtn">Is mahine ki sab entries clear karein</button></div>
+</div>
+
+<!-- Selection bar -->
+<div class="selection-bar" id="selectionBar">
+  <div class="sel-count" id="selCount">Total dekhne ke liye checkbox tick karein</div>
+  <div class="sel-stats">
+    <div class="sel-stat"><div class="label">Total Payment</div><div class="value dim" id="selTotal">Rs.0</div></div>
+    <div class="sel-stat"><div class="label">Advance</div><div class="value adv dim" id="selAdv">Rs.0</div></div>
+    <div class="sel-stat"><div class="label">Net Payment</div><div class="value net dim" id="selNet">Rs.0</div></div>
+  </div>
+</div>
+
+<div class="scroll-hint">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5l-6 7 6 7M16 5l6 7-6 7"/></svg>
+  Columns dekhne ke liye left-right scroll karein
+</div>
+
+<!-- Table -->
+<div class="table-outer">
+  <div class="table-wrap">
+    <table id="ledgerTable">
+      <thead>
+        <tr>
+          <th class="col-check"><input type="checkbox" id="selectAll"></th>
+          <th class="col-name">Naam / Phone</th>
+          <th class="col-photo">Photo</th>
+          <th class="col-num">Din</th>
+          <th class="col-num">OT (ghante)</th>
+          <th class="col-num">Rate Rs.</th>
+          <th class="col-num">OT Rate Rs.</th>
+          <th class="col-money">Total Payment</th>
+          <th class="col-money">Advance Rs.</th>
+          <th class="col-due">Purana Due Rs.</th>
+          <th class="col-money">Net Payment</th>
+          <th class="col-status">Status</th>
+          <th class="col-remove"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- Custom confirm overlay -->
+<div class="overlay hidden" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle"></h3>
+    <p id="confirmMsg"></p>
+    <div class="confirm-btns">
+      <button class="btn-cancel-c" id="confirmCancel">Nahi</button>
+      <button class="btn-ok-c" id="confirmOk">Haan, aage badhein</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Labour Detail Modal -->
+<div class="labour-modal-overlay hidden" id="labourModalOverlay">
+  <div class="labour-modal">
+    <div class="labour-modal-header">
+      <div class="labour-modal-photo" id="modalPhoto"></div>
+      <div>
+        <div class="labour-modal-name" id="modalName">-</div>
+        <div class="labour-modal-phone" id="modalPhone"></div>
+      </div>
+      <button class="labour-modal-close" id="labourModalClose">x</button>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <div class="d-label">Kaam ke Din</div>
+        <div class="d-value" id="modalDin">0</div>
+      </div>
+      <div class="detail-card">
+        <div class="d-label">OT (Ghante)</div>
+        <div class="d-value" id="modalOt">0</div>
+      </div>
+      <div class="detail-card">
+        <div class="d-label">Daily Rate</div>
+        <div class="d-value" id="modalRate">Rs.0</div>
+      </div>
+      <div class="detail-card">
+        <div class="d-label">Total Payment</div>
+        <div class="d-value" id="modalTotal">Rs.0</div>
+      </div>
+      <div class="detail-card">
+        <div class="d-label">Advance Liya</div>
+        <div class="d-value red" id="modalAdvance">Rs.0</div>
+      </div>
+      <div class="detail-card">
+        <div class="d-label">Purana Due</div>
+        <div class="d-value red" id="modalDue">Rs.0</div>
+      </div>
+      <div class="detail-card full">
+        <div class="d-label">Net Payment (Dena Baaki)</div>
+        <div class="d-value green" id="modalNet">Rs.0</div>
+      </div>
+    </div>
+    <button class="paid-toggle-btn" id="modalPaidBtn">Paid Mark Karein</button>
+    <a class="call-detail-btn" id="modalCallBtn" href="#">Call Karein</a>
+    <button class="share-detail-btn" id="modalShareBtn">Share Karein (WhatsApp)</button>
+  </div>
+</div>
+
+<input type="file" id="globalPhotoInput" accept="image/*" style="display:none;">
+<div class="toast" id="toast"></div>
+
+<script>
+// ── state ──────────────────────────────────────────────────────────
+let months = [];
+let viewIdx = 0;
+let selectedIds = new Set();
+let pendingPhotoId = null;
+
+const STORAGE_KEY = 'labour-months-v2';
+const LEGACY_KEY  = 'labour-months';
+const hasCS = typeof window.storage !== 'undefined' && typeof window.storage.set === 'function';
+
+// ── helpers ────────────────────────────────────────────────────────
+function uid(){ return 'e'+Date.now()+Math.random().toString(36).slice(2,6); }
+function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
+function fmt(n){ return 'Rs.'+n.toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function fmtPdf(n){ return 'Rs '+n.toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function monthKey(dateStr){ return dateStr.slice(0,7); }
+function lastDayOfMonth(yyyy,mm){
+  return new Date(yyyy, mm, 0).getDate();
+}
+function defaultStartStr(){
+  const d=new Date(); d.setDate(1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+}
+function defaultEndStr(startStr){
+  const [y,m]=startStr.slice(0,7).split('-').map(Number);
+  const last=lastDayOfMonth(y,m);
+  return y+'-'+String(m).padStart(2,'0')+'-'+String(last).padStart(2,'0');
+}
+function nextMonthStartStr(endStr){
+  // day after endStr
+  const d=new Date(endStr); d.setDate(d.getDate()+1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(str){
+  // "2026-09-01" → "1-9-2026"
+  if(!str) return '';
+  const [y,m,d]=str.split('-').map(Number);
+  return d+'-'+m+'-'+y;
+}
+function makeLabel(s,e){ return fmtDate(s)+' se '+fmtDate(e)+' tak'; }
+
+function newEntry(){
+  return {id:uid(),name:'',phone:'',photo:'',din:'',ot:'',rate:'',otRate:'',advance:'',previousDue:0,paid:false};
+}
+function newMonth(start, end, entries){
+  return {id:uid(),startDate:start,endDate:end,label:makeLabel(start,end),siteName:'',note:'',entries:entries||[],closed:false};
+}
+
+function calcTotal(e){
+  const rate=num(e.rate), otRate=e.otRate===''?rate/8:num(e.otRate);
+  return num(e.din)*rate + num(e.ot)*otRate;
+}
+function calcNet(e){ return calcTotal(e)-num(e.advance)+num(e.previousDue); }
+
+// ── storage ────────────────────────────────────────────────────────
+async function sGet(k){
+  if(hasCS){ try{ const r=await window.storage.get(k); return r?r.value:null; }catch(e){ return null; } }
+  try{ return localStorage.getItem(k); }catch(e){ return null; }
+}
+async function sSet(k,v){
+  if(hasCS){ try{ await window.storage.set(k,v); return; }catch(e){} }
+  try{ localStorage.setItem(k,v); }catch(e){}
+}
+async function save(){ await sSet(STORAGE_KEY, JSON.stringify(months)); }
+
+async function load(){
+  let raw=await sGet(STORAGE_KEY);
+  // try legacy key
+  if(!raw) raw=await sGet(LEGACY_KEY);
+  if(raw){
+    try{
+      const parsed=JSON.parse(raw);
+      // migrate old format (had monthKey/label, no startDate/endDate)
+      months=parsed.map(m=>{
+        if(!m.startDate){
+          const key=m.monthKey||monthKey(todayStr());
+          const [y,mm]=key.split('-').map(Number);
+          const s=key+'-01', e=key+'-'+String(lastDayOfMonth(y,mm)).padStart(2,'0');
+          m.startDate=s; m.endDate=e; m.label=makeLabel(s,e);
+        }
+        return m;
+      });
+    }catch(ex){ months=[]; }
+  }
+  if(!months||months.length===0){
+    const s=defaultStartStr(), e=defaultEndStr(s);
+    months=[newMonth(s,e,[newEntry()])];
+    await save();
+  }
+  viewIdx=months.length-1;
+  render();
+}
+
+function findEntry(id){
+  const m=months[viewIdx]; if(!m) return null;
+  return m.entries.find(e=>e.id===id)||null;
+}
+
+// ── toast ──────────────────────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3400);
+}
+
+// ── custom confirm ─────────────────────────────────────────────────
+function confirmDialog(title, msg, onOk){
+  document.getElementById('confirmTitle').textContent=title;
+  document.getElementById('confirmMsg').textContent=msg;
+  const overlay=document.getElementById('confirmOverlay');
+  overlay.classList.remove('hidden');
+  document.getElementById('confirmOk').onclick=()=>{ overlay.classList.add('hidden'); onOk(); };
+  document.getElementById('confirmCancel').onclick=()=>overlay.classList.add('hidden');
+}
+
+// ── month selector + date inputs ───────────────────────────────────
+function renderMonthBar(){
+  const isCurrent=viewIdx===months.length-1;
+  const m=months[viewIdx];
+
+  // dropdown
+  const sel=document.getElementById('monthSelect');
+  sel.innerHTML=months.map((mo,i)=>
+    `<option value="${i}"${i===viewIdx?' selected':''}>${esc(mo.label)}${i===months.length-1?' ⬅ Current':''}</option>`
+  ).join('');
+
+  // badge
+  const badge=document.getElementById('monthBadge');
+  badge.textContent=isCurrent?'Current':'Purana';
+  badge.className='month-badge'+(isCurrent?'':' readonly');
+
+  // date inputs
+  const si=document.getElementById('startDateInput');
+  const ei=document.getElementById('endDateInput');
+  si.value=m.startDate||'';
+  ei.value=m.endDate||'';
+  si.disabled=!isCurrent;
+  ei.disabled=!isCurrent;
+
+  // readonly banner
+  document.getElementById('readonlyBanner').style.display=isCurrent?'none':'block';
+  document.getElementById('addBtn').style.display=isCurrent?'':'none';
+  document.getElementById('newMonthBtn').style.display=isCurrent?'':'none';
+  document.getElementById('resetBtn').parentElement.style.display=isCurrent?'':'none';
+  // site name field
+  const sni=document.getElementById('siteNameInput');
+  sni.value=m.siteName||'';
+  sni.disabled=!isCurrent;
+  const ni=document.getElementById('noteInput');
+  ni.value=m.note||'';
+  ni.disabled=!isCurrent;
+}
+
+document.getElementById('monthSelect').addEventListener('change',ev=>{
+  viewIdx=parseInt(ev.target.value,10);
+  selectedIds.clear();
+  render();
+});
+
+function updateMonthLabel(){
+  const m=months[viewIdx];
+  m.label=makeLabel(m.startDate,m.endDate);
+  renderMonthBar();
+  save();
+}
+
+document.getElementById('startDateInput').addEventListener('change',ev=>{
+  const m=months[viewIdx]; if(!m||viewIdx!==months.length-1) return;
+  m.startDate=ev.target.value;
+  updateMonthLabel();
+});
+document.getElementById('endDateInput').addEventListener('change',ev=>{
+  const m=months[viewIdx]; if(!m||viewIdx!==months.length-1) return;
+  m.endDate=ev.target.value;
+  updateMonthLabel();
+});
+
+// ── main render ────────────────────────────────────────────────────
+function render(){
+  const month=months[viewIdx];
+  const entries=month?month.entries:[];
+  const ro=viewIdx!==months.length-1;
+
+  renderMonthBar();
+
+  const tbody=document.getElementById('tbody');
+  if(entries.length===0){
+    tbody.innerHTML=`<tr><td colspan="13" class="empty">Koi labour entry nahi hai.</td></tr>`;
+    document.getElementById('tfoot').innerHTML='';
+    updateSelBar();
+    return;
+  }
+
+  tbody.innerHTML=entries.map(e=>{
+    const rate=num(e.rate);
+    const otPh=(e.otRate===''?(rate/8):num(e.otRate)).toFixed(0);
+    const total=calcTotal(e), net=calcNet(e);
+    const ck=selectedIds.has(e.id)?'checked':'';
+    const sc=selectedIds.has(e.id)?'is-selected':'';
+    const ph=e.phone||'';
+    const photoSt=e.photo?`style="background-image:url('${e.photo}')"`:'' ;
+    const dis=ro?'disabled':'';
+    return `
+<tr data-id="${e.id}" class="${sc}">
+  <td class="col-check"><input type="checkbox" data-action="select" ${ck}></td>
+  <td class="col-name">
+    <div style="display:flex;align-items:center;gap:4px;">
+      <input class="cell name-input" placeholder="Naam" value="${esc(e.name)}" data-field="name" ${dis}>
+      <button class="eye-btn" data-action="detail" title="Detail dekho">&#128065;</button>
+    </div>
+    <div class="phone-row">
+      <input class="cell phone-input" type="tel" placeholder="Phone" value="${esc(ph)}" data-field="phone" ${dis}>
+      ${ph?`<a class="call-btn" href="tel:${esc(ph)}">&#128222;</a>`:`<span class="call-btn disabled">&#128222;</span>`}
+    </div>
+  </td>
+  <td class="col-photo"><button class="photo-thumb" data-action="photo" ${dis} ${photoSt}>${e.photo?'':'👤'}</button></td>
+  <td class="col-num"><input class="cell" type="number" inputmode="decimal" placeholder="0" value="${e.din}" data-field="din" ${dis}></td>
+  <td class="col-num"><input class="cell" type="number" inputmode="decimal" placeholder="0" value="${e.ot}" data-field="ot" ${dis}></td>
+  <td class="col-num"><input class="cell" type="number" inputmode="decimal" placeholder="0" value="${e.rate}" data-field="rate" ${dis}></td>
+  <td class="col-num"><input class="cell" type="number" inputmode="decimal" placeholder="${otPh}" value="${e.otRate}" data-field="otRate" ${dis}></td>
+  <td class="col-money total-cell"><div class="readonly-cell">${fmt(total)}</div></td>
+  <td class="col-money"><input class="cell" type="number" inputmode="decimal" placeholder="0" value="${e.advance}" data-field="advance" ${dis}></td>
+  <td class="col-due due-cell"><input class="cell" type="number" inputmode="decimal" placeholder="0" value="${e.previousDue}" data-field="previousDue" ${dis}></td>
+  <td class="col-money net-cell"><div class="readonly-cell">${fmt(net)}</div></td>
+  <td class="col-status"><button class="status-pill ${e.paid?'paid':'unpaid'}" data-action="togglePaid" ${dis}>${e.paid?'Paid':'Unpaid'}</button></td>
+  <td class="col-remove">${ro?'':`<button class="remove-btn" data-action="remove">✕</button>`}</td>
+</tr>`;
+  }).join('');
+
+  renderFooter();
+  updateSelBar();
+  updateSelectAll();
+
+  tbody.querySelectorAll('input[data-action="select"]').forEach(c=>c.addEventListener('change',onSelect));
+
+  // Eye button click to open detail modal
+  tbody.querySelectorAll('[data-action="detail"]').forEach(b=>{
+    b.addEventListener('click',ev=>{
+      ev.stopPropagation();
+      const row=b.closest('tr'), id=row.dataset.id;
+      if(id) openLabourModal(id);
+    });
+  });
+
+  if(!ro){
+    tbody.querySelectorAll('input[data-field]').forEach(i=>i.addEventListener('input',onFieldInput));
+    tbody.querySelectorAll('[data-action="remove"]').forEach(b=>b.addEventListener('click',onRemove));
+    tbody.querySelectorAll('[data-action="togglePaid"]').forEach(b=>b.addEventListener('click',onTogglePaid));
+    tbody.querySelectorAll('[data-action="photo"]').forEach(b=>b.addEventListener('click',onPhoto));
+  }
+}
+
+function renderFooter(){
+  const entries=(months[viewIdx]||{entries:[]}).entries;
+  let tp=0,ta=0,td=0;
+  entries.forEach(e=>{ tp+=calcTotal(e); ta+=num(e.advance); td+=num(e.previousDue); });
+  const tn=tp-ta+td;
+  document.getElementById('tfoot').innerHTML=`
+<tr>
+  <td class="col-check"></td>
+  <td class="col-name">Total (${entries.length})</td>
+  <td class="col-photo"></td>
+  <td class="col-num"></td><td class="col-num"></td><td class="col-num"></td><td class="col-num"></td>
+  <td class="col-money">${fmt(tp)}</td>
+  <td class="col-money adv-total">${fmt(ta)}</td>
+  <td class="col-due due-total">${fmt(td)}</td>
+  <td class="col-money net-total">${fmt(tn)}</td>
+  <td class="col-status"></td><td class="col-remove"></td>
+</tr>`;
+}
+
+function updateSelBar(){
+  const entries=(months[viewIdx]||{entries:[]}).entries;
+  const bar=document.getElementById('selectionBar');
+  const cnt=selectedIds.size;
+  if(cnt===0){
+    bar.classList.remove('active');
+    document.getElementById('selCount').textContent='Total dekhne ke liye checkbox tick karein';
+    ['selTotal','selAdv','selNet'].forEach(id=>document.getElementById(id).textContent='Rs.0');
+    document.querySelectorAll('#selectionBar .value').forEach(v=>v.classList.add('dim'));
+    return;
+  }
+  let tp=0,ta=0,td=0;
+  entries.filter(e=>selectedIds.has(e.id)).forEach(e=>{ tp+=calcTotal(e); ta+=num(e.advance); td+=num(e.previousDue); });
+  const tn=tp-ta+td;
+  bar.classList.add('active');
+  document.getElementById('selCount').textContent=cnt+' Labour selected';
+  document.getElementById('selTotal').textContent=fmt(tp);
+  document.getElementById('selAdv').textContent=fmt(ta);
+  document.getElementById('selNet').textContent=fmt(tn);
+  document.querySelectorAll('#selectionBar .value').forEach(v=>v.classList.remove('dim'));
+}
+
+function updateSelectAll(){
+  const all=document.getElementById('selectAll');
+  const entries=(months[viewIdx]||{entries:[]}).entries;
+  if(!entries.length){ all.checked=false; all.indeterminate=false; return; }
+  const sc=entries.filter(e=>selectedIds.has(e.id)).length;
+  all.checked=sc===entries.length; all.indeterminate=sc>0&&sc<entries.length;
+}
+
+// ── row events ─────────────────────────────────────────────────────
+function onFieldInput(ev){
+  const row=ev.target.closest('tr'), id=row.dataset.id, field=ev.target.dataset.field;
+  const e=findEntry(id); if(!e) return;
+  e[field]=ev.target.value;
+  row.querySelector('.total-cell .readonly-cell').textContent=fmt(calcTotal(e));
+  row.querySelector('.net-cell .readonly-cell').textContent=fmt(calcNet(e));
+  renderFooter(); updateSelBar(); save();
+}
+function onSelect(ev){
+  const row=ev.target.closest('tr'), id=row.dataset.id;
+  if(ev.target.checked){ selectedIds.add(id); row.classList.add('is-selected'); }
+  else{ selectedIds.delete(id); row.classList.remove('is-selected'); }
+  updateSelBar(); updateSelectAll();
+}
+function onTogglePaid(ev){
+  const row=ev.target.closest('tr'), e=findEntry(row.dataset.id); if(!e) return;
+  e.paid=!e.paid;
+  ev.target.textContent=e.paid?'Paid':'Unpaid';
+  ev.target.className='status-pill '+(e.paid?'paid':'unpaid');
+  save();
+}
+function onRemove(ev){
+  const row=ev.target.closest('tr'), id=row.dataset.id;
+  months[viewIdx].entries=months[viewIdx].entries.filter(e=>e.id!==id);
+  selectedIds.delete(id); render(); save();
+}
+
+document.getElementById('addBtn').addEventListener('click',()=>{
+  months[viewIdx].entries.push(newEntry());
+  render(); save();
+  setTimeout(()=>{
+    const rows=document.querySelectorAll('#tbody tr[data-id]');
+    if(rows.length){ const last=rows[rows.length-1]; last.scrollIntoView({behavior:'smooth',block:'center'}); const ni=last.querySelector('.name-input'); if(ni) ni.focus(); }
+  },50);
+});
+
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  confirmDialog('Clear karein?','Is mahine ki sabhi entries delete ho jayengi.',()=>{
+    months[viewIdx].entries=[newEntry()]; selectedIds.clear(); render(); save();
+  });
+});
+
+document.getElementById('selectAll').addEventListener('change',ev=>{
+  const entries=(months[viewIdx]||{entries:[]}).entries;
+  if(ev.target.checked) entries.forEach(e=>selectedIds.add(e.id)); else selectedIds.clear();
+  render();
+});
+
+// ── photo ──────────────────────────────────────────────────────────
+function onPhoto(ev){
+  const row=ev.target.closest('tr'); pendingPhotoId=row.dataset.id;
+  const inp=document.getElementById('globalPhotoInput'); inp.value=''; inp.click();
+}
+document.getElementById('globalPhotoInput').addEventListener('change',ev=>{
+  const file=ev.target.files[0]; if(!file||!pendingPhotoId) return;
+  const reader=new FileReader();
+  reader.onload=e=>resizeImg(e.target.result,160,160,url=>{
+    const entry=findEntry(pendingPhotoId); if(entry){ entry.photo=url; save(); render(); }
+    pendingPhotoId=null;
+  });
+  reader.readAsDataURL(file);
+});
+function resizeImg(src,maxW,maxH,cb){
+  const img=new Image();
+  img.onload=()=>{
+    let w=img.width,h=img.height,sc=Math.min(maxW/w,maxH/h,1);
+    w=Math.round(w*sc); h=Math.round(h*sc);
+    const c=document.createElement('canvas'); c.width=w; c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',0.72));
+  };
+  img.onerror=()=>showToast('Photo load nahi ho payi.');
+  img.src=src;
+}
+
+// ── site name + note ───────────────────────────────────────────────
+document.getElementById('siteNameInput').addEventListener('input',ev=>{
+  const m=months[viewIdx]; if(!m||viewIdx!==months.length-1) return;
+  m.siteName=ev.target.value; save();
+});
+document.getElementById('noteInput').addEventListener('input',ev=>{
+  const m=months[viewIdx]; if(!m||viewIdx!==months.length-1) return;
+  m.note=ev.target.value; save();
+});
+
+// ── new month ──────────────────────────────────────────────────────
+document.getElementById('newMonthBtn').addEventListener('click',()=>{
+  const cur=months[months.length-1];
+  const unpaidCount=cur.entries.filter(e=>!e.paid).length;
+  const msg=`"${cur.label}" lock ho jayega aur ek naya mahina shuru hoga.`
+    +(unpaidCount>0?` ${unpaidCount} Unpaid labour ka due balance agle mahine mein aa jayega.`:'');
+  confirmDialog('Agla Mahina Shuru Karein?', msg, async ()=>{
+    cur.closed=true;
+    const newStart=nextMonthStartStr(cur.endDate||todayStr());
+    const newEnd=defaultEndStr(newStart);
+    const carried=[];
+    cur.entries.forEach(e=>{
+      if(!e.paid){
+        const due=calcNet(e);
+        if(Math.round(due)!==0){
+          const fr=newEntry();
+          fr.name=e.name; fr.phone=e.phone; fr.photo=e.photo; fr.previousDue=due;
+          carried.push(fr);
+        }
+      }
+    });
+    months.push(newMonth(newStart, newEnd, carried.length?carried:[newEntry()]));
+    viewIdx=months.length-1;
+    selectedIds.clear();
+    await save();
+    render();
+    showToast('Naya mahina shuru: '+months[viewIdx].label+(carried.length?' | '+carried.length+' labour ka due carry ho gaya.':'.'));
+  });
+});
+
+// ── PDF ────────────────────────────────────────────────────────────
+async function sharePdf(){
+  const btn=document.getElementById('sharePdfBtn');
+  if(typeof window.jspdf==='undefined'){ showToast('PDF library load nahi ho payi.'); return; }
+  btn.disabled=true; btn.textContent='PDF taiyar ho rahi hai...';
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+    const marginX=40; let y=46;
+    const month=months[viewIdx]; const entries=month?month.entries:[];
+    doc.setFont('helvetica','bold'); doc.setFontSize(17);
+    doc.text('Mazdoori Khata — Labour Payment Register', marginX, y); y+=20;
+
+    // Site name (bold, prominent)
+    if(month&&month.siteName&&month.siteName.trim()){
+      doc.setFont('helvetica','bold'); doc.setFontSize(13);
+      doc.text('Site / Kaam: '+month.siteName.trim(), marginX, y); y+=17;
+    }
+
+    // Date range
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    doc.text('Tarikh: '+(month?month.label:''), marginX, y); y+=15;
+
+    // Generated date
+    const genDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    doc.text('PDF bani: '+genDate, marginX, y); y+=15;
+
+    // Note (italic, with line wrapping for long text)
+    if(month&&month.note&&month.note.trim()){
+      doc.setFontSize(10); doc.setFont('helvetica','italic');
+      const pageW=doc.internal.pageSize.getWidth();
+      const noteLines=doc.splitTextToSize('Note: '+month.note.trim(), pageW - marginX*2 - 10);
+      noteLines.forEach(line=>{ doc.text(line, marginX, y); y+=13; });
+      doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    }
+
+    // Divider line before table
+    y+=6;
+    doc.setLineWidth(0.5);
+    doc.line(marginX, y, doc.internal.pageSize.getWidth()-marginX, y);
+    y+=14;
+    const cols=[
+      {k:'name',l:'Naam',w:95},{k:'phone',l:'Phone',w:70},{k:'din',l:'Din',w:40},
+      {k:'ot',l:'OT',w:40},{k:'rate',l:'Rate',w:50},{k:'otRate',l:'OT Rate',w:55},
+      {k:'total',l:'Total Pay',w:72},{k:'advance',l:'Advance',w:62},
+      {k:'due',l:'Old Due',w:62},{k:'net',l:'Net Pay',w:72},{k:'status',l:'Status',w:55}
+    ];
+    function drawHdr(){
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+      let x=marginX; cols.forEach(c=>{doc.text(c.l,x,y);x+=c.w;});
+      y+=6; doc.setLineWidth(0.6); doc.line(marginX,y,x,y); y+=16;
+      doc.setFont('helvetica','normal');
+    }
+    drawHdr();
+    let tp=0,ta=0,td=0;
+    entries.forEach(e=>{
+      if(y>555){doc.addPage();y=46;drawHdr();}
+      const total=calcTotal(e),net=calcNet(e); tp+=total; ta+=num(e.advance); td+=num(e.previousDue);
+      const orv=e.otRate===''?Math.round(num(e.rate)/8):num(e.otRate);
+      const vals={name:e.name||'-',phone:e.phone||'-',din:String(e.din||0),ot:String(e.ot||0),
+        rate:String(e.rate||0),otRate:String(orv),total:fmtPdf(total),advance:fmtPdf(num(e.advance)),
+        due:fmtPdf(num(e.previousDue)),net:fmtPdf(net),status:e.paid?'Paid':'Unpaid'};
+      let x=marginX; doc.setFontSize(9.5);
+      cols.forEach(c=>{doc.text(String(vals[c.k]),x,y);x+=c.w;}); y+=18;
+    });
+    const tn=tp-ta+td;
+    y+=4; let xEnd=marginX; cols.forEach(c=>xEnd+=c.w);
+    doc.setLineWidth(0.6); doc.line(marginX,y,xEnd,y); y+=16;
+    doc.setFont('helvetica','bold');
+    const tv={name:'Total ('+entries.length+')',phone:'',din:'',ot:'',rate:'',otRate:'',
+      total:fmtPdf(tp),advance:fmtPdf(ta),due:fmtPdf(td),net:fmtPdf(tn),status:''};
+    let x=marginX; cols.forEach(c=>{doc.text(String(tv[c.k]),x,y);x+=c.w;});
+
+    const blob=doc.output('blob');
+    const file=new File([blob],'mazdoori-'+Date.now()+'.pdf',{type:'application/pdf'});
+    let shared=false;
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file],title:'Mazdoori Khata',text:'Labour Register'}); shared=true; }
+      catch(se){ if(se&&se.name==='AbortError') shared=true; }
+    }
+    if(!shared){
+      const url=URL.createObjectURL(blob); window.open(url,'_blank');
+      showToast('PDF khul gayi. ⋮ menu se download karein phir WhatsApp par share karein.');
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }
+  }catch(err){ console.error(err); showToast('PDF banane mein dikkat aayi.'); }
+  finally{ btn.disabled=false; btn.textContent='PDF Banayein aur Share Karein'; }
+}
+document.getElementById('sharePdfBtn').addEventListener('click',sharePdf);
+
+
+// ── Labour Detail Modal ────────────────────────────────────────────
+let modalEntryId = null;
+
+function openLabourModal(id){
+  const e = findEntry(id);
+  if(!e) return;
+  modalEntryId = id;
+  const total = calcTotal(e), net = calcNet(e);
+  
+  // Photo
+  const photoEl = document.getElementById('modalPhoto');
+  if(e.photo){ photoEl.style.backgroundImage = "url('"+e.photo+"')"; photoEl.textContent=''; }
+  else{ photoEl.style.backgroundImage=''; photoEl.textContent='👤'; }
+  
+  document.getElementById('modalName').textContent = e.name || 'Labour';
+  document.getElementById('modalPhone').textContent = e.phone ? e.phone : 'Phone nahi hai';
+  document.getElementById('modalDin').textContent = e.din || 0;
+  document.getElementById('modalOt').textContent = e.ot || 0;
+  document.getElementById('modalRate').textContent = fmt(num(e.rate));
+  document.getElementById('modalTotal').textContent = fmt(total);
+  document.getElementById('modalAdvance').textContent = fmt(num(e.advance));
+  document.getElementById('modalDue').textContent = fmt(num(e.previousDue));
+  document.getElementById('modalNet').textContent = fmt(net);
+  
+  // Paid button
+  const paidBtn = document.getElementById('modalPaidBtn');
+  paidBtn.textContent = e.paid ? 'Paid hai - Unpaid karein' : 'Unpaid hai - Paid Mark Karein';
+  paidBtn.className = 'paid-toggle-btn ' + (e.paid ? 'paid' : 'unpaid');
+  
+  // Call button
+  const callBtn = document.getElementById('modalCallBtn');
+  if(e.phone){ callBtn.href='tel:'+e.phone; callBtn.style.opacity='1'; callBtn.style.pointerEvents=''; }
+  else{ callBtn.href='#'; callBtn.style.opacity='0.4'; callBtn.style.pointerEvents='none'; }
+  
+  document.getElementById('labourModalOverlay').classList.remove('hidden');
+}
+
+document.getElementById('labourModalClose').addEventListener('click',()=>{
+  document.getElementById('labourModalOverlay').classList.add('hidden');
+  modalEntryId = null;
+});
+
+document.getElementById('labourModalOverlay').addEventListener('click',ev=>{
+  if(ev.target===document.getElementById('labourModalOverlay')){
+    document.getElementById('labourModalOverlay').classList.add('hidden');
+    modalEntryId = null;
+  }
+});
+
+document.getElementById('modalPaidBtn').addEventListener('click',()=>{
+  const e = findEntry(modalEntryId); if(!e) return;
+  e.paid = !e.paid;
+  const paidBtn = document.getElementById('modalPaidBtn');
+  paidBtn.textContent = e.paid ? 'Paid hai - Unpaid karein' : 'Unpaid hai - Paid Mark Karein';
+  paidBtn.className = 'paid-toggle-btn ' + (e.paid ? 'paid' : 'unpaid');
+  save(); render();
+  showToast(e.name ? e.name + ' ko ' + (e.paid?'Paid':'Unpaid') + ' mark kiya.' : 'Status update ho gaya.');
+});
+
+document.getElementById('modalShareBtn').addEventListener('click',()=>{
+  const e = findEntry(modalEntryId); if(!e) return;
+  const month = months[viewIdx];
+  const total = calcTotal(e), net = calcNet(e);
+  const msg = 
+    'Mazdoori Khata - Labour Detail\n' +
+    '================================\n' +
+    'Naam: ' + (e.name||'-') + '\n' +
+    'Phone: ' + (e.phone||'-') + '\n' +
+    (month&&month.siteName ? 'Site: ' + month.siteName + '\n' : '') +
+    'Period: ' + (month?month.label:'') + '\n' +
+    '--------------------------------\n' +
+    'Kaam ke Din: ' + (e.din||0) + '\n' +
+    'OT Ghante: ' + (e.ot||0) + '\n' +
+    'Daily Rate: Rs.' + (e.rate||0) + '\n' +
+    'Total Payment: Rs.' + Math.round(total) + '\n' +
+    'Advance: Rs.' + Math.round(num(e.advance)) + '\n' +
+    (num(e.previousDue)!==0 ? 'Purana Due: Rs.' + Math.round(num(e.previousDue)) + '\n' : '') +
+    '--------------------------------\n' +
+    'Net Dena Baaki: Rs.' + Math.round(net) + '\n' +
+    'Status: ' + (e.paid?'PAID':'UNPAID');
+  
+  if(navigator.share){
+    navigator.share({ title: 'Mazdoori Detail - '+(e.name||'Labour'), text: msg })
+      .catch(()=>{});
+  } else {
+    const wa = 'https://wa.me/' + (e.phone||'') + '?text=' + encodeURIComponent(msg);
+    window.open(wa, '_blank');
+  }
+});
+
+
+// ── install app button ─────────────────────────────────────────────
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('installAppBtn');
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (installBtn) installBtn.classList.add('show');
+});
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice.catch(() => null);
+      deferredInstallPrompt = null;
+      installBtn.classList.remove('show');
+    } else {
+      alert('Chrome menu (⋮) खोलकर “Add to Home screen” या “Install app” दबाएँ. Install option तभी आता है जब app HTTPS hosting पर खुले.');
+    }
+  });
+}
+window.addEventListener('appinstalled', () => {
+  if (installBtn) installBtn.classList.remove('show');
+});
+
+// ── service worker ────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+load();
+</script>
+</body>
+</html>
